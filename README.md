@@ -2,6 +2,8 @@
 
 The arxiv version of this paper [1] is at https://arxiv.org/abs/2011.01192.
 
+Please only use the **master** branch.
+
 All codes are in Python 3. (We use 3.6.9 for experiments and 3.7.7 Jupyter Notebooks.)
 
 The core codes are in the **src** directory, including the **hdmm** package from the HDMM paper [2], which is implemented based on the Ektelo package [3]. All the codes are implemented based on the hdmm package.
