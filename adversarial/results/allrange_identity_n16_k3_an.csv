@@ -1,0 +1,9 @@
+,total_utility,max_utility,min_utility,sharing_incentive,non_interference
+uni_ind,13312.0,13056.0,256.0,True,
+uni_inter,40.0,40.0,40.0,,True
+fdiff_ind,13312.0,13056.0,256.0,True,
+fdiff_inter,40.0,40.0,40.0,,True
+fmax_ind,13312.0,13056.0,256.0,True,
+fmax_inter,40.0,40.0,40.0,,True
+fsum_ind,13312.0,13056.0,256.0,True,
+fsum_inter,40.0,40.0,40.0,,True
