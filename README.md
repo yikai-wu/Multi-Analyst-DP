@@ -2,7 +2,7 @@
 
 The arxiv version of this paper [1] is at https://arxiv.org/abs/2011.01192.
 
-Please only use the **master** branch.
+The codes in the paper are in the **master** branch. Please only use the **master** branch. Other branches are used for developments beyond this paper.
 
 All codes are in Python 3. (We use 3.6.9 for experiments and 3.7.7 Jupyter Notebooks.)
 
