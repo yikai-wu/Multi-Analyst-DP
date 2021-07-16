@@ -1,5 +1,6 @@
 """
 Different implementations of private multiplicative weights.
+
 Author: Albert Sun, 7/13/2021
 """
 
@@ -8,34 +9,61 @@ import math
 from matplotlib import pyplot as plt
 
 
-def pmw(W, x, eps=0.01, beta=0.1):
-    """
-    Implement Private Multiplicative Weights Mechanism (PMW) on a workload of
-    linear queries with constants equal to exactly how the Hardt and Rothblum
-    2010 theoretical paper implement PMW.
+def plot_error(abs_error, rel_error, k, update_times):
+    """Plot absolute and relative error"""
+    plt.xticks(range(0, k, 5))
+    plt.title('Error across queries:')
+    rel_line, = plt.plot(rel_error, label='Relative Error')
+    abs_line, = plt.plot(abs_error, label='Absolute Error')
+    for xc in update_times:
+        plt.axvline(x=xc, color='red', label='Update Times')
+    plt.legend(handles=[rel_line, abs_line])
+
+
+def pmw(workload, x, eps=0.01, beta=0.1):
+    """Implement Private Multiplicative Weights Mechanism (PMW) on a workload of
+    linear queries with constants equal to the same constants in the Hardt and
+    Rothblum 2010 theoretical paper implementation of PMW.
 
     - W = workload of queries (M x k numpy array)
-    - x = true database (M x 1 numpy array)
-    """
+    - x = true database (M x 1 numpy array)"""
 
-    print(f'original database: {x}')
-    print(f'workload: \n{W}, size = {np.shape(W)}')
+    def print_outputs():
+        # inputs
+        print(f'original database: {x}')
+        print('Workload:')
+        [print(index, q) for index, q in enumerate(workload)]
+        print(f'size = {np.shape(workload)}')
 
-    M = x.size  # len of database, num of coordinates in the DB
-    n = x.sum()  # sum of database
-    k = len(W)  # num of queries
+        # updates and threshold
+        print(f'T (Threshold) = {threshold}')
+        print(
+            f'The update threshold for failure is n * math.log(M, 10)**(1/2): '
+            f'{n * math.log(m, 10) ** (1 / 2)}. n is {n}, and M is {m}.')
+        print(f'Update Count = {update_count}\n')
+
+        # errors
+        print(f'abs_error: {abs_error}')
+        print(f'rel_error: {rel_error}')
+
+        # outputs
+        print(f'query_answers (using pmw): {query_answers}\n')
+        print(f'Updated Database = {x_t}')
+
+    # initialize constants
+    m = x.size  # database len
+    n = x.sum()  # database sum
+    k = len(workload)  # num of queries
     delta = 1 / (n * math.log(n, np.e))
-
     x_norm = x / np.sum(x)
-
-    eta = math.log(M, np.e) ** (1 / 4) / math.sqrt(n)
-    sigma = 10 * math.log(1 / delta, np.e) * (math.log(M, np.e)) ** (1 / 4) / (
+    eta = math.log(m, np.e) ** (1 / 4) / math.sqrt(n)
+    sigma = 10 * math.log(1 / delta, np.e) * (math.log(m, np.e)) ** (1 / 4) / (
             math.sqrt(n) * eps)
-    T = 4 * sigma * (math.log(k, np.e) + math.log(1 / beta, np.e))  # threshold
+    threshold = 4 * sigma * (math.log(k, np.e) + math.log(1 / beta, np.e))
 
-    # initialize synthetic database at time 0 (prior to any queries)
-    y_t = np.ones(M) / M
-    x_t = np.ones(M) / M  # fractional histogram computed in round t
+    # synthetic databases at time 0 (prior to any queries)
+    y_t = np.ones(m) / m
+    x_t = np.ones(m) / m
 
     # append to list of databases y_t and x_t
     y_list = [y_t]
@@ -46,75 +74,58 @@ def pmw(W, x, eps=0.01, beta=0.1):
     update_times = []
 
     # iterate through time = (0, k)
-    for t, query in enumerate(W):
+    for time, query in enumerate(workload):
 
         # compute noisy answer by adding Laplacian noise
-        A_t = np.random.laplace(loc=0, scale=sigma, size=1)[0]
-        a_t_hat = np.dot(query, x) + A_t
-        # print(f'a_t_hat: {a_t_hat}')
+        a_t = np.random.laplace(loc=0, scale=sigma, size=1)[0]
+        a_t_hat = np.dot(query, x) + a_t
 
-        # compute difference between noisy answer and answer from maintained
-        # histogram
-        d_t_hat = a_t_hat - np.dot(query, x_list[t])
+        # difference between noisy and maintained histogram answer
+        d_t_hat = a_t_hat - np.dot(query, x_list[time])
 
-        # lazy round: use already maintained histogram to answer the query
-        if abs(d_t_hat) <= T:
-            query_answers.append(np.dot(query, x_list[t]))
-            x_list.append(x_list[t])
+        # lazy round: use maintained histogram to answer the query
+        if abs(d_t_hat) <= threshold:
+            query_answers.append(np.dot(query, x_list[time]))
+            x_list.append(x_list[time])
             continue
 
-        # update round: update the histogram and return the noisy answer,
-        # abs(d_t_hat) > T
+        # update round: update histogram and return noisy answer
         else:
             update_count += 1
-            update_times.append(t)
+            update_times.append(time)
 
             # step a
-            r_t = np.zeros(M)
             if d_t_hat > 0:
                 r_t = query
             else:
-                r_t = np.ones(M) - query
-            for i in range(len(x_t)):
-                y_t[i] = x_list[t][i] * math.exp(-eta * r_t[i])
+                r_t = np.ones(m) - query
+            for i, v in enumerate(y_t):
+                y_t[i] = x_list[time][i] * math.exp(-eta * r_t[i])
             y_list.append(y_t)
 
             # step b
             x_t = y_t / np.sum(y_t)
             x_list.append(x_t)
 
-        if update_count > n * math.log(M, 10) ** (1 / 2):
+        if update_count > n * math.log(m, 10) ** (1 / 2):
             return "failure"
         else:
             query_answers.append(a_t_hat / np.sum(x))
 
-    # plot absolute and relative error
-    real_ans = np.matmul(W, x_norm)
+    # calculate error
+    real_ans = np.matmul(workload, x_norm)
     abs_error = np.abs(query_answers - real_ans)
-    plt.xticks(range(0, k, 5))
-    real_ans_no_zero = np.where(real_ans == 0, 0.000001, real_ans)
-    rel_error = np.abs(query_answers / real_ans_no_zero)
-    plt.title('Error across queries:')
-    rel_line, = plt.plot(rel_error, label='Relative Error')
-    abs_line, = plt.plot(abs_error, label='Absolute Error')
-    for xc in update_times:
-        plt.axvline(x=xc)
-    plt.legend(handles=[rel_line, abs_line])
+    rel_error = np.abs(query_answers / np.where(real_ans == 0, 0.000001,
+                                                real_ans))
 
-    print(f'T (Threshold) = {T}')
-    print(f'query_answers (using pmw): {query_answers}\n')
-
-    print(
-        f'The update threshold for failure is n * math.log(M, 10)**(1/2): '
-        f'{n * math.log(M, 10) ** (1 / 2)}. n is {n}, and M is {M}.')
-    print(f'Update Count = {update_count}\n')
-
-    print(f'Updated Database = {x_t}')
+    print_outputs()
+    plot_error(abs_error, rel_error, k, update_times)
 
     return query_answers
 
 
-def pmw_optimized(W, x, eps=0.01, beta=0.1, laplace_scale=1, threshold=100):
+def pmw_optimized(workload, x, eps=0.01, beta=0.1, laplace_scale=1,
+                  threshold=100):
     """
     Implement Private Multiplicative Weights Mechanism (PMW) on a workload of
     linear queries. New arguments to allow for optimizing the amount of
@@ -123,3 +134,92 @@ def pmw_optimized(W, x, eps=0.01, beta=0.1, laplace_scale=1, threshold=100):
     - W = workload of queries (M x k numpy array)
     - x = true database (M x 1 numpy array)
     """
+    def print_outputs():
+        # inputs
+        print(f'original database: {x}')
+        print('Workload:')
+        [print(index, q) for index, q in enumerate(workload)]
+        print(f'size = {np.shape(workload)}')
+
+        # updates and threshold
+        print(f'T (Threshold) = {threshold}')
+        print(
+            f'The update threshold for failure is {threshold}.')
+        print(f'Update Count = {update_count}\n')
+
+        # errors
+        print(f'abs_error: {abs_error}')
+        print(f'rel_error: {rel_error}')
+
+        # outputs
+        print(f'query_answers (using pmw): {query_answers}\n')
+        print(f'Updated Database = {x_t}')
+
+    # initialize constants
+    m = x.size  # database len
+    n = x.sum()  # database sum
+    k = len(workload)  # num of queries
+    x_norm = x / np.sum(x)
+    eta = math.log(m, np.e) ** (1 / 4) / math.sqrt(n)
+
+    # synthetic databases at time 0 (prior to any queries)
+    y_t = np.ones(m) / m
+    x_t = np.ones(m) / m
+
+    # append to list of databases y_t and x_t
+    y_list = [y_t]
+    x_list = [x_t]
+
+    update_count = 0
+    query_answers = []
+    update_times = []
+
+    # iterate through time = (0, k)
+    for time, query in enumerate(workload):
+
+        # compute noisy answer by adding Laplacian noise
+        a_t = np.random.laplace(loc=0, scale=laplace_scale, size=1)[0]
+        a_t_hat = np.dot(query, x) + a_t
+
+        # difference between noisy and maintained histogram answer
+        d_t_hat = a_t_hat - np.dot(query, x_list[time])
+
+        # lazy round: use maintained histogram to answer the query
+        if abs(d_t_hat) <= threshold:
+            query_answers.append(np.dot(query, x_list[time]))
+            x_list.append(x_list[time])
+            continue
+
+        # update round: update histogram and return noisy answer
+        else:
+            update_count += 1
+            update_times.append(time)
+
+            # step a
+            if d_t_hat > 0:
+                r_t = query
+            else:
+                r_t = np.ones(m) - query
+            for i, v in enumerate(y_t):
+                y_t[i] = x_list[time][i] * math.exp(-eta * r_t[i])
+            y_list.append(y_t)
+
+            # step b
+            x_t = y_t / np.sum(y_t)
+            x_list.append(x_t)
+
+        if update_count > n * math.log(m, 10) ** (1 / 2):
+            return "failure"
+        else:
+            query_answers.append(a_t_hat / np.sum(x))
+
+    # calculate error
+    real_ans = np.matmul(workload, x_norm)
+    abs_error = np.abs(query_answers - real_ans)
+    rel_error = np.abs(query_answers / np.where(real_ans == 0, 0.000001,
+                                                real_ans))
+
+    print_outputs()
+    plot_error(abs_error, rel_error, k, update_times)
+
+    return query_answers
