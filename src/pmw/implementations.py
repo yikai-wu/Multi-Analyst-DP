@@ -29,22 +29,16 @@ def pmw(workload, x, eps=0.01, beta=0.1):
     - x = true database (M x 1 numpy array)"""
 
     def print_outputs():
-        # inputs
+        # input
         print(f'original database: {x}')
-        print('Workload:')
-        [print(index, q) for index, q in enumerate(workload)]
-        print(f'size = {np.shape(workload)}')
 
         # updates and threshold
         print(f'T (Threshold) = {threshold}')
-        print(
-            f'The update threshold for failure is n * math.log(M, 10)**(1/2): '
-            f'{n * math.log(m, 10) ** (1 / 2)}. n is {n}, and M is {m}.')
+        print('Index \t Workload \t d_t_hat:')
+        [print(index, query_and_error[0],
+               query_and_error[1]) for index, query_and_error
+         in enumerate(zip(workload, d_t_hat_list))]
         print(f'Update Count = {update_count}\n')
-
-        # errors
-        print(f'abs_error: {abs_error}')
-        print(f'rel_error: {rel_error}')
 
         # outputs
         print(f'query_answers (using pmw): {query_answers}\n')
@@ -72,6 +66,7 @@ def pmw(workload, x, eps=0.01, beta=0.1):
     update_count = 0
     query_answers = []
     update_times = []
+    d_t_hat_list = []
 
     # iterate through time = (0, k)
     for time, query in enumerate(workload):
@@ -82,6 +77,7 @@ def pmw(workload, x, eps=0.01, beta=0.1):
 
         # difference between noisy and maintained histogram answer
         d_t_hat = a_t_hat - np.dot(query, x_list[time])
+        d_t_hat_list.append(d_t_hat)
 
         # lazy round: use maintained histogram to answer the query
         if abs(d_t_hat) <= threshold:
@@ -135,21 +131,16 @@ def pmw_optimized(workload, x, eps=0.01, beta=0.1, laplace_scale=1,
     - x = true database (M x 1 numpy array)
     """
     def print_outputs():
-        # inputs
+        # input
         print(f'original database: {x}')
-        print('Workload:')
-        [print(index, q) for index, q in enumerate(workload)]
-        print(f'size = {np.shape(workload)}')
 
         # updates and threshold
         print(f'T (Threshold) = {threshold}')
-        print(
-            f'The update threshold for failure is {threshold}.')
+        print('Index \t Workload \t d_t_hat:')
+        [print(index, query_and_error[0],
+               query_and_error[1]) for index, query_and_error
+         in enumerate(zip(workload, d_t_hat_list))]
         print(f'Update Count = {update_count}\n')
-
-        # errors
-        print(f'abs_error: {abs_error}')
-        print(f'rel_error: {rel_error}')
 
         # outputs
         print(f'query_answers (using pmw): {query_answers}\n')
@@ -173,7 +164,7 @@ def pmw_optimized(workload, x, eps=0.01, beta=0.1, laplace_scale=1,
     update_count = 0
     query_answers = []
     update_times = []
-
+    d_t_hat_list = []
     # iterate through time = (0, k)
     for time, query in enumerate(workload):
 
@@ -183,6 +174,7 @@ def pmw_optimized(workload, x, eps=0.01, beta=0.1, laplace_scale=1,
 
         # difference between noisy and maintained histogram answer
         d_t_hat = a_t_hat - np.dot(query, x_list[time])
+        d_t_hat_list.append(d_t_hat)
 
         # lazy round: use maintained histogram to answer the query
         if abs(d_t_hat) <= threshold:
