@@ -16,7 +16,7 @@ def plot_error(abs_error, rel_error, k, update_times):
     rel_line, = plt.plot(rel_error, label='Relative Error')
     abs_line, = plt.plot(abs_error, label='Absolute Error')
     for xc in update_times:
-        plt.axvline(x=xc, color='red', label='Update Times')
+        plt.axvline(x=xc, color='red', label='Update Times', linestyle='dashed')
     plt.legend(handles=[rel_line, abs_line])
 
 
