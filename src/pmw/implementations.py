@@ -73,7 +73,7 @@ def pmw(workload, x, eps=0.01, beta=0.1):
 
         # compute noisy answer by adding Laplacian noise
         a_t = np.random.laplace(loc=0, scale=sigma, size=1)[0]
-        a_t_hat = np.dot(query, x) + a_t
+        a_t_hat = np.dot(query, x_norm) + a_t
 
         # difference between noisy and maintained histogram answer
         d_t_hat = a_t_hat - np.dot(query, x_list[time])
@@ -170,7 +170,7 @@ def pmw_optimized(workload, x, eps=0.01, beta=0.1, laplace_scale=1,
 
         # compute noisy answer by adding Laplacian noise
         a_t = np.random.laplace(loc=0, scale=laplace_scale, size=1)[0]
-        a_t_hat = np.dot(query, x) + a_t
+        a_t_hat = np.dot(query, x_norm) + a_t
 
         # difference between noisy and maintained histogram answer
         d_t_hat = a_t_hat - np.dot(query, x_list[time])
