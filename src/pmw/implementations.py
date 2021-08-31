@@ -9,48 +9,19 @@ import math
 from matplotlib import pyplot as plt
 
 
-def plot_error(abs_error, rel_error, k, update_times):
-    """Plot absolute and relative error"""
-    plt.xticks(range(0, k, 5))
-    plt.title('Error across queries:')
-    rel_line, = plt.plot(rel_error, label='Relative Error')
-    abs_line, = plt.plot(abs_error, label='Absolute Error')
-    for xc in update_times:
-        plt.axvline(x=xc, color='red', label='Update Times', linestyle='dashed')
-    plt.legend(handles=[rel_line, abs_line])
-
-
 def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
     """
     Implement Private Multiplicative Weights Mechanism (PMW) on a workload of
     linear queries. New arguments to allow for optimizing the amount of
     privacy budget used in each step.
 
+    Returns pandas df with test data for each query (query, d_t_hat, updated,
+    algo_ans, real_ans, abs_error, rel_error). 
+
     - W = workload of queries (M x k numpy array)
     - x = true database (M x 1 numpy array)
-    """
-    def print_outputs():
-        # input
-        print(f'Original database: {x}\n')
-        print(f'Normalized database: {x_norm}\n')
-        print(f'Updated Database = {x_t}\n')
-        print(f'Update Count = {update_count}\n')
-        print(f'{threshold=}\n')
-                
-        # create pandas dataframe
-        d = {
-                'workloads': workload.tolist(), 
-                'd_t_hat': d_t_hat_list, 
-                'updated': update_list,
-                'algo_ans': algo_answers,
-                'real_ans': real_ans.tolist(),
-                'abs_error': abs_error,
-                'rel_error': rel_error,
-             }
-        df = pd.DataFrame(data=d)
-        display(df)
-        
-
+    """ 
+    
     # initialize constants
     m = x.size  # database len
     n = x.sum()  # database sum
@@ -71,6 +42,7 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
     x_list = [x_t]
     
     update_list = []
+    update_count = 0
     algo_answers = []
     update_times = []
     d_t_hat_list = []
@@ -123,5 +95,35 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
     rel_error = np.abs(algo_answers / np.where(real_ans == 0, 0.000001,
                                                 real_ans))
 
+    def print_outputs():
+        """Print inputes/outputs to analyze each query"""
+        print(f'Original database: {x}\n')
+        print(f'Normalized database: {x_norm}\n')
+        print(f'Updated Database = {x_t}\n')
+        print(f'Update Count = {update_count}\n')
+        print(f'{threshold=}\n')
     print_outputs()
-    plot_error(abs_error, rel_error, k, update_times)
+    
+    def plot_error():
+        """Plot absolute and relative error"""
+        plt.xticks(range(0, k, 5))
+        plt.title('Error across queries:')
+        rel_line, = plt.plot(rel_error, label='Relative Error')
+        abs_line, = plt.plot(abs_error, label='Absolute Error')
+        for xc in update_times:
+            plt.axvline(x=xc, color='red', label='Update Times', linestyle='dashed')
+        plt.legend(handles=[rel_line, abs_line])
+    plot_error()
+    
+    d = {
+                'queries': workload.tolist(), 
+                'd_t_hat': d_t_hat_list, 
+                'updated': update_list,
+                'algo_ans': algo_answers,
+                'real_ans': real_ans.tolist(),
+                'abs_error': abs_error,
+                'rel_error': rel_error,
+             }
+    test_data = pd.DataFrame(data=d)
+
+    return test_data
