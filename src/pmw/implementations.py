@@ -33,8 +33,8 @@ def pmw(workload, x, eps=10, beta=0.1, k=0, show_messages=True, to_return='pd', 
         k = len(workload)  # num of queries
     delta = 1 / (n * math.log(n, np.e))
     x_norm = x / np.sum(x)
-    eta = math.log(m, np.e) ** (1 / 4) / math.sqrt(n)
-    sigma = 10 * math.log(1 / delta, np.e) * (math.log(m, np.e)) ** (1 / 4) / (
+    eta = (math.log(m, np.e) ** (1 / 4)) / (math.sqrt(n))
+    sigma = 10 * math.log(1 / delta, np.e) * ((math.log(m, np.e)) ** (1 / 4)) / (
             math.sqrt(n) * eps)
     threshold = 4 * sigma * (math.log(k, np.e) + math.log(1 / beta, np.e))
     
@@ -56,14 +56,17 @@ def pmw(workload, x, eps=10, beta=0.1, k=0, show_messages=True, to_return='pd', 
 
         # compute noisy answer by adding Laplacian noise
         a_t = np.random.laplace(loc=0, scale=sigma, size=1)[0]
-        a_t_hat = np.dot(query, x_norm) + a_t
+        a_t_hat = (np.dot(query, x_norm)*n ) + a_t
 
         # difference between noisy and maintained histogram answer
-        d_t_hat = a_t_hat - np.dot(query, x_list[time])
+        d_t_hat = a_t_hat - (n*np.dot(query, x_list[time]))
         d_t_hat_list.append(d_t_hat)
+        #print("Current noisy distance:")
+        #print(d_t_hat)
 
         # lazy round: use maintained histogram to answer the query
         if abs(d_t_hat) <= threshold:
+            #print("Lazy")
             algo_answers.append(np.dot(query, x_list[time]))
             x_list.append(x_list[time])
             update_list.append('no')
@@ -71,6 +74,7 @@ def pmw(workload, x, eps=10, beta=0.1, k=0, show_messages=True, to_return='pd', 
 
         # update round: update histogram and return noisy answer
         else:
+            #print("update")
             update_list.append('yes')
             update_times.append(time)
 
@@ -89,7 +93,7 @@ def pmw(workload, x, eps=10, beta=0.1, k=0, show_messages=True, to_return='pd', 
         
         update_count = update_list.count('yes')
 
-        if update_count > n * math.log(m, 10) ** (1 / 2):
+        if update_count > n * math.log(m, np.e) ** (1 / 2):
             return "failure"
         else:
             algo_answers.append(a_t_hat / np.sum(x))
