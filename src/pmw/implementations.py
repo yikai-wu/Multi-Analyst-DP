@@ -9,14 +9,18 @@ import math
 from matplotlib import pyplot as plt
 
 
-def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
+def pmw(workload, x, eps=10, beta=0.1, k=0, show_messages=True, to_return='pd', ):
     """
     Implement Private Multiplicative Weights Mechanism (PMW) on a workload of
     linear queries. New arguments to allow for optimizing the amount of
     privacy budget used in each step.
-
-    Returns pandas df with test data for each query (query, d_t_hat, updated,
-    algo_ans, real_ans, abs_error, rel_error). 
+    
+    to_return argument determines what the function will return. 
+        - if 'pd', pmw() returns pandas df with test data for each 
+        query (query, d_t_hat, updated, algo_ans, real_ans, abs_error, 
+        rel_error). 
+        - if 'update_count', pmw() returns the update count for the total
+        amount of queries
 
     - W = workload of queries (M x k numpy array)
     - x = true database (M x 1 numpy array)
@@ -24,8 +28,9 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
     
     # initialize constants
     m = x.size  # database len
-    n = x.sum()  # database sum
-    k = len(workload)  # num of queries
+    n = x.sum()
+    if k==0: # essentially, if k hasn't been changed from its default value, use the length of the workload
+        k = len(workload)  # num of queries
     delta = 1 / (n * math.log(n, np.e))
     x_norm = x / np.sum(x)
     eta = math.log(m, np.e) ** (1 / 4) / math.sqrt(n)
@@ -50,7 +55,7 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
     for time, query in enumerate(workload):
 
         # compute noisy answer by adding Laplacian noise
-        a_t = np.random.laplace(loc=0, scale=laplace_scale, size=1)[0]
+        a_t = np.random.laplace(loc=0, scale=sigma, size=1)[0]
         a_t_hat = np.dot(query, x_norm) + a_t
 
         # difference between noisy and maintained histogram answer
@@ -102,7 +107,6 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
         print(f'Updated Database = {x_t}\n')
         print(f'Update Count = {update_count}\n')
         print(f'{threshold=}\n')
-    print_outputs()
     
     def plot_error():
         """Plot absolute and relative error"""
@@ -113,17 +117,23 @@ def pmw(workload, x, eps=13, beta=0.1, laplace_scale=1):
         for xc in update_times:
             plt.axvline(x=xc, color='red', label='Update Times', linestyle='dashed')
         plt.legend(handles=[rel_line, abs_line])
-    plot_error()
     
-    d = {
-                'queries': workload.tolist(), 
-                'd_t_hat': d_t_hat_list, 
-                'updated': update_list,
-                'algo_ans': algo_answers,
-                'real_ans': real_ans.tolist(),
-                'abs_error': abs_error,
-                'rel_error': rel_error,
+    if show_messages:
+        print_outputs()
+        plot_error()
+        
+    if to_return == "update_count":
+        return update_count
+    
+    if to_return == "pd":
+        d = {
+            'queries': workload.tolist(), 
+            'd_t_hat': d_t_hat_list, 
+            'updated': update_list,
+            'algo_ans': algo_answers,
+            'real_ans': real_ans.tolist(),
+            'abs_error': abs_error,               
+            'rel_error': rel_error,
              }
-    test_data = pd.DataFrame(data=d)
-
-    return test_data
+        test_data = pd.DataFrame(data=d)
+        return test_data
