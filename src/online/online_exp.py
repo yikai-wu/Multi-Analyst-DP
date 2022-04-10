@@ -70,13 +70,13 @@ conf['seed'] =seed
 W_name = ['identity', 'total', 'H2', 'race1', 'race2', 'race3'] 
 W_lst = [online_workloads.identity(n), online_workloads.total(n), online_workloads.H2(n), online_workloads.race1(), online_workloads.race2(), online_workloads.race3()]
 
-Ws = [np.random.choice(W_name)]
-Wn = 
+c = np.random.choice(len(W_lst))
+Ws = [W_lst[c]]
+Wn = [W_name[c]]
+#res = error_calc()
 
 
 
 import random
 k_max=20
 k = random.randint(2, k_max)
-    
-print(choose_workload())
